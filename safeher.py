@@ -1,57 +1,32 @@
  
+ 
 import re
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ---------------- PAGE SETTINGS ----------------
+# PAGE SETTINGS
 st.set_page_config(
     page_title="SafeHer",
     page_icon="🛡️",
     layout="wide"
 )
 
-# ---------------- DESIGN ----------------
-st.markdown("""
-<style>
-.stApp {
-    background: #07111f;
-    color: white;
-}
-.title {
-    font-size: 42px;
-    font-weight: 800;
-    color: white;
-}
-.subtitle {
-    color: #9fb0c5;
-    font-size: 17px;
-}
-.stButton button {
-    background: #20e58a;
-    color: #07111f;
-    border-radius: 10px;
-    font-weight: bold;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ---------------- LOGIN ----------------
+# LOGIN SYSTEM
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
+    st.markdown("""
+    <style>
+    .stApp {
+        background: #07111f;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    st.markdown(
-        '<div class="title">🛡️ SafeHer</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="subtitle">AI-powered real-time safety companion for women</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write("")
+    st.title("🛡️ SafeHer")
+    st.caption("AI-powered real-time safety companion for women")
     st.subheader("Login")
 
     user_input = st.text_input(
@@ -60,45 +35,42 @@ if not st.session_state.logged_in:
     )
 
     if st.button("Login", use_container_width=True):
-
         value = user_input.strip()
 
-        email_pattern = (
-            r"^[A-Za-z0-9._%+-]+@"
-            r"[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+        email_valid = re.fullmatch(
+            r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+            value
         )
 
-        phone_pattern = r"^[6-9][0-9]{9}$"
+        phone_valid = re.fullmatch(
+            r"[6-9][0-9]{9}",
+            value
+        )
 
-        valid_email = re.fullmatch(email_pattern, value)
-        valid_phone = re.fullmatch(phone_pattern, value)
-
-        if valid_email or valid_phone:
+        if email_valid or phone_valid:
             st.session_state.logged_in = True
             st.session_state.username = value
             st.rerun()
         else:
-            st.error(
-                "Invalid input! Enter a valid email "
-                "or 10-digit Indian mobile number."
-            )
+            st.error("Enter a valid email or 10-digit Indian mobile number.")
 
     st.stop()
 
-# ---------------- DASHBOARD ----------------
-st.markdown(
-    '<div class="title">🛡️ SafeHer</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="subtitle">AI-powered real-time safety companion for women</div>',
-    unsafe_allow_html=True
-)
+# DASHBOARD HEADER
+st.markdown("""
+<style>
+.stApp {
+    background: #07111f;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
 col1, col2 = st.columns([4, 1])
 
 with col1:
+    st.title("🛡️ SafeHer")
+    st.caption("AI-powered real-time safety companion for women")
     st.caption("Logged in as: " + st.session_state.username)
 
 with col2:
@@ -106,12 +78,17 @@ with col2:
         st.session_state.logged_in = False
         st.rerun()
 
-# ---------------- DASHBOARD HTML ----------------
+# DASHBOARD HTML
 html_code = r"""
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
 body {
@@ -124,13 +101,13 @@ body {
 .dashboard {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    gap: 14px;
 }
 
 .card {
     background: #101d2e;
     border: 1px solid #263b52;
-    border-radius: 17px;
+    border-radius: 16px;
     padding: 20px;
     margin-bottom: 14px;
     box-sizing: border-box;
@@ -143,7 +120,7 @@ body {
 }
 
 .value {
-    font-size: 24px;
+    font-size: 23px;
     font-weight: bold;
     overflow-wrap: anywhere;
 }
@@ -166,26 +143,44 @@ button {
     width: 100%;
 }
 
+.stop {
+    background: #64748b;
+    color: white;
+    width: 100%;
+    margin-top: 10px;
+}
+
 .sos {
     background: #e53935;
     color: white;
     width: 100%;
     padding: 20px;
-    font-size: 21px;
+    font-size: 20px;
 }
 
 .status {
     background: #0d2630;
     color: #20e58a;
-    border-radius: 12px;
-    padding: 15px;
+    padding: 14px;
+    border-radius: 10px;
     margin-top: 12px;
     overflow-wrap: anywhere;
 }
 
-a {
-    color: #35a7ff;
+#liveMap {
+    height: 350px;
+    width: 100%;
+    border-radius: 12px;
+    background: #182b3e;
+    z-index: 1;
 }
+
+.police-item {
+    border-bottom: 1px solid #263b52;
+    padding: 10px 0;
+}
+
+small { color: #9fb0c5; }
 
 @media(max-width: 650px) {
     .dashboard {
@@ -212,80 +207,72 @@ a {
 
     <div class="card">
         <div class="label">🛡️ SAFETY STATUS</div>
-        <div id="safety" class="value green">SAFE</div>
+        <div id="safety" class="value green">● SAFE</div>
     </div>
 
     <div class="card">
         <div class="label">📍 LIVE GPS COORDINATES</div>
-        <div id="coordinates" class="value green">
-            Not detected
-        </div>
+        <div id="coordinates" class="value green">Not detected</div>
     </div>
 
 </div>
 
 <div class="card">
+    <div class="label">🗺️ LIVE GPS MAP</div>
+    <div id="liveMap"></div>
+    <p id="mapStatus">Start GPS tracking to show your location on map.</p>
+</div>
+
+<div class="card">
     <div class="label">📍 CURRENT LOCATION</div>
-
-    <div id="place" class="value green">
-        Location not detected
-    </div>
-
-    <p id="address">
-        Full address will appear here.
-    </p>
+    <div id="place" class="value green">Location not detected</div>
+    <p id="address">Full address will appear here.</p>
 
     <button class="detect" onclick="startTracking()">
         📍 START LIVE GPS TRACKING
     </button>
 
+    <button class="stop" onclick="stopTracking()">
+        STOP TRACKING
+    </button>
+
     <div id="gpsStatus" class="status">
-        Tap the button and allow location permission.
+        Allow location permission to start tracking.
     </div>
 </div>
 
 <div class="card">
     <div class="label">🚔 NEARBY POLICE STATIONS</div>
-    <div id="police">
-        Start GPS tracking to find nearby police stations.
-    </div>
+    <div id="police">Start GPS tracking to find nearby stations.</div>
 </div>
 
 <div class="card">
     <div class="label">🚨 EMERGENCY SOS</div>
     <p>In an emergency, use this button to call 112.</p>
-
     <button class="sos" onclick="sendSOS()">
         🚨 EMERGENCY SOS
     </button>
 </div>
 
-<p style="color:#9fb0c5;font-size:12px">
-    SafeHer prototype | Map data by OpenStreetMap contributors.
-</p>
+<p><small>
+SafeHer prototype | Map data © OpenStreetMap contributors.
+</small></p>
 
 <script>
 
-// ---------------- LIVE TIME ----------------
-
+// LIVE CLOCK
 function updateClock() {
     document.getElementById("clock").innerText =
         new Date().toLocaleTimeString();
 }
-
 setInterval(updateClock, 1000);
 updateClock();
 
 
-// ---------------- BATTERY ----------------
-
+// BATTERY STATUS
 async function getBattery() {
-
-    const batteryText =
-        document.getElementById("battery");
-
-    const chargingText =
-        document.getElementById("charging");
+    const batteryText = document.getElementById("battery");
+    const chargingText = document.getElementById("charging");
 
     if (!navigator.getBattery) {
         batteryText.innerText = "Not supported";
@@ -305,7 +292,6 @@ async function getBattery() {
         }
 
         update();
-
         battery.addEventListener("levelchange", update);
         battery.addEventListener("chargingchange", update);
 
@@ -313,18 +299,69 @@ async function getBattery() {
         batteryText.innerText = "Unavailable";
     }
 }
-
 getBattery();
 
 
-// ---------------- GPS TRACKING ----------------
-
+// MAP INITIALIZATION
+let map = null;
+let marker = null;
+let routeLine = null;
 let watchId = null;
-let lastAddressTime = 0;
-let lastPoliceTime = 0;
 let lastLat = null;
 let lastLon = null;
+let lastAddressTime = 0;
+let lastPoliceTime = 0;
 
+function initializeMap() {
+    if (map || !window.L) return;
+
+    map = L.map("liveMap").setView([17.0, 83.0], 6);
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            attribution: "&copy; OpenStreetMap contributors",
+            maxZoom: 19
+        }
+    ).addTo(map);
+
+    routeLine = L.polyline([], {
+        color: "#20e58a",
+        weight: 4
+    }).addTo(map);
+}
+
+initializeMap();
+
+
+// UPDATE LIVE MAP MARKER
+function updateLiveMap(lat, lon) {
+    initializeMap();
+
+    if (!map) {
+        document.getElementById("mapStatus").innerText =
+            "Map library could not load. Check internet connection.";
+        return;
+    }
+
+    const position = [lat, lon];
+
+    if (!marker) {
+        marker = L.marker(position).addTo(map);
+        marker.bindPopup("Your current location");
+    } else {
+        marker.setLatLng(position);
+    }
+
+    routeLine.addLatLng(position);
+    map.setView(position, 16);
+
+    document.getElementById("mapStatus").innerText =
+        "🟢 Your live location is displayed on the map.";
+}
+
+
+// DISTANCE CALCULATION
 function distanceMeters(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const rad = x => x * Math.PI / 180;
@@ -344,6 +381,8 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
     );
 }
 
+
+// START CONTINUOUS GPS
 function startTracking() {
 
     if (!navigator.geolocation) {
@@ -365,6 +404,7 @@ function startTracking() {
 
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
+            const now = Date.now();
 
             document.getElementById("coordinates").innerText =
                 lat.toFixed(6) + ", " + lon.toFixed(6);
@@ -373,14 +413,12 @@ function startTracking() {
                 "🟢 Live GPS tracking active | Accuracy: " +
                 Math.round(position.coords.accuracy) + " metres";
 
+            updateLiveMap(lat, lon);
+
             const moved = lastLat === null ||
                 distanceMeters(lastLat, lastLon, lat, lon) > 100;
 
-            const now = Date.now();
-
             if (moved || now - lastAddressTime > 30000) {
-                lastLat = lat;
-                lastLon = lon;
                 lastAddressTime = now;
                 getAddress(lat, lon);
             }
@@ -389,19 +427,21 @@ function startTracking() {
                 lastPoliceTime = now;
                 findPolice(lat, lon);
             }
+
+            lastLat = lat;
+            lastLon = lon;
         },
 
         function(error) {
 
             const messages = {
                 1: "Location permission denied. Allow location in Chrome.",
-                2: "GPS position unavailable. Check phone location settings.",
-                3: "GPS request timed out. Please try again."
+                2: "GPS unavailable. Check phone location settings.",
+                3: "GPS timed out. Please try again."
             };
 
             document.getElementById("gpsStatus").innerText =
                 messages[error.code] || "GPS error occurred.";
-
         },
 
         {
@@ -413,23 +453,34 @@ function startTracking() {
 }
 
 
-// ---------------- LOCATION NAME AND ADDRESS ----------------
+// STOP GPS
+function stopTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
 
+    document.getElementById("gpsStatus").innerText =
+        "GPS tracking stopped.";
+    document.getElementById("mapStatus").innerText =
+        "Tracking stopped.";
+}
+
+
+// REVERSE GEOCODING - LOCATION NAME AND ADDRESS
 async function getAddress(lat, lon) {
 
     const place = document.getElementById("place");
     const address = document.getElementById("address");
 
     try {
-
         const url =
             "https://nominatim.openstreetmap.org/reverse" +
-            "?format=jsonv2&lat=" + lat +
-            "&lon=" + lon;
+            "?format=jsonv2&lat=" + lat + "&lon=" + lon;
 
         const response = await fetch(url);
 
-        if (!response.ok) throw new Error("Address service unavailable");
+        if (!response.ok) throw new Error("Address unavailable");
 
         const data = await response.json();
         const a = data.address || {};
@@ -438,33 +489,28 @@ async function getAddress(lat, lon) {
             a.city || a.town || a.village ||
             a.suburb || a.county || "Unknown area";
 
-        const state = a.state || "";
-
-        place.innerText = city + ", " + state;
+        place.innerText =
+            city + ", " + (a.state || "");
 
         address.innerText =
             data.display_name || "Full address unavailable.";
 
     } catch(error) {
-
         place.innerText = "Location name unavailable";
         address.innerText =
-            "Could not load address. GPS coordinates are still available.";
-
+            "Address service unavailable. GPS coordinates are available.";
     }
 }
 
 
-// ---------------- NEARBY POLICE STATIONS ----------------
-
+// NEARBY POLICE STATIONS
 async function findPolice(lat, lon) {
 
     const output = document.getElementById("police");
-
     output.innerText = "Searching within 5 km...";
 
     const query = `
-    [out:json][timeout:20];
+    [out:json][timeout:25];
     (
       node["amenity"="police"](around:5000,${lat},${lon});
       way["amenity"="police"](around:5000,${lat},${lon});
@@ -474,7 +520,6 @@ async function findPolice(lat, lon) {
     `;
 
     try {
-
         const response = await fetch(
             "https://overpass-api.de/api/interpreter",
             {
@@ -483,10 +528,9 @@ async function findPolice(lat, lon) {
             }
         );
 
-        if (!response.ok) throw new Error("Police data unavailable");
+        if (!response.ok) throw new Error("Service unavailable");
 
         const data = await response.json();
-
         output.innerHTML = "";
 
         if (!data.elements || data.elements.length === 0) {
@@ -500,33 +544,27 @@ async function findPolice(lat, lon) {
             const name =
                 station.tags.name || "Police Station";
 
-            const item = document.createElement("p");
-            item.innerText = "🚔 " + name;
+            const item = document.createElement("div");
+            item.className = "police-item";
+            item.textContent = "🚔 " + name;
 
             output.appendChild(item);
         });
 
     } catch(error) {
-
         output.innerText =
             "Police station data unavailable. Try again later.";
-
     }
 }
 
 
-// ---------------- EMERGENCY SOS ----------------
-
+// EMERGENCY SOS
 function sendSOS() {
-
     document.getElementById("safety").innerText =
-        "SOS ACTIVE";
+        "SOS CALL REQUESTED";
 
     document.getElementById("safety").style.color =
         "#ff4d4d";
-
-    document.getElementById("gpsStatus").innerText =
-        "Emergency call option opened.";
 
     window.location.href = "tel:112";
 }
@@ -537,13 +575,14 @@ function sendSOS() {
 </html>
 """
 
+# RENDER DASHBOARD
 components.html(
     html_code,
-    height=1250,
+    height=1550,
     scrolling=True
 )
 
 st.caption(
-    "SafeHer prototype | GPS and battery features depend on "
-    "device, browser permissions and network availability."
+    "SafeHer prototype | GPS works while the dashboard is active "
+    "and browser location permission is allowed."
 )
