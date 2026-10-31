@@ -305,3 +305,30 @@ st.markdown("---")
 st.caption(
     "SafeHer prototype • GPS and battery information depends on browser/device permissions and support."
 )
+st.set_page_config(
+    page_title="SafeHer",
+    page_icon="🛡️",
+    layout="wide"
+)
+# LOGIN SYSTEM
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.title("🛡️ SafeHer Login")
+    st.write("Welcome to Women's Safety Dashboard")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username.strip() and password.strip():
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.rerun()
+        else:
+            st.error("Please enter username and password")
+
+    st.stop()
+
+st.success("Welcome, " + st.session_state.username)
