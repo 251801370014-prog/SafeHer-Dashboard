@@ -1,3 +1,4 @@
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -7,328 +8,286 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
+# ---------------- LOGIN ----------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.markdown("""
+    <style>
     .stApp {
         background: #07111f;
         color: white;
     }
+    </style>
+    """, unsafe_allow_html=True)
 
-    .title {
-        font-size: 42px;
-        font-weight: 800;
-        margin-bottom: 5px;
-    }
+    st.title("🛡️ SafeHer")
+    st.subheader("Women's Safety Dashboard")
+    st.write("Welcome! Please enter your username.")
 
-    .subtitle {
-        color: #9fb0c5;
-        font-size: 17px;
-        margin-bottom: 25px;
-    }
-</style>
-""", unsafe_allow_html=True)
+    username = st.text_input("Enter Username")
 
-st.markdown(
-    '<div class="title">🛡️ SafeHer</div>',
-    unsafe_allow_html=True
-)
+    if st.button("Login", use_container_width=True):
+        if username.strip():
+            st.session_state.logged_in = True
+            st.session_state.username = username.strip()
+            st.rerun()
+        else:
+            st.warning("Please enter your username.")
 
-st.markdown(
-    '<div class="subtitle">AI-powered real-time safety companion for women</div>',
-    unsafe_allow_html=True
-)
+    st.stop()
 
-# Real-time dashboard
-components.html("""
+# ---------------- DASHBOARD ----------------
+col1, col2 = st.columns([5, 1])
+
+with col1:
+    st.title("🛡️ SafeHer Dashboard")
+    st.caption("Welcome, " + st.session_state.username)
+
+with col2:
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
+
+html_code = r"""
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body {
-    margin: 0;
-    background: #07111f;
-    color: white;
-    font-family: Arial, sans-serif;
+    background:#07111f;
+    color:white;
+    font-family:Arial,sans-serif;
+    margin:0;
 }
-
-.dashboard {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-}
-
 .card {
-    background: #101d2e;
-    border: 1px solid #263b52;
-    border-radius: 18px;
-    padding: 22px;
-    min-height: 130px;
-    box-sizing: border-box;
+    background:#101d2e;
+    border:1px solid #263b52;
+    border-radius:15px;
+    padding:20px;
+    margin:10px 0;
 }
-
-.label {
-    color: #8fa4ba;
-    font-size: 14px;
-    margin-bottom: 12px;
+.grid {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
 }
-
+h2 { color:#20e58a; }
 .value {
-    font-size: 28px;
-    font-weight: bold;
+    font-size:18px;
+    margin-top:12px;
+    overflow-wrap:anywhere;
 }
-
-.green {
-    color: #20e58a;
+button {
+    border:0;
+    border-radius:10px;
+    padding:13px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
 }
-
-.blue {
-    color: #35a7ff;
+.green {background:#20e58a;color:#07111f;}
+.red {
+    background:#e53935;
+    color:white;
+    width:100%;
+    font-size:19px;
+    padding:18px;
 }
-
-.orange {
-    color: #ffb84d;
-}
-
-.sos {
-    background: #e53935;
-    color: white;
-    border: none;
-    border-radius: 15px;
-    width: 100%;
-    padding: 20px;
-    font-size: 22px;
-    font-weight: bold;
-    margin-top: 18px;
-}
-
-.sos:active {
-    transform: scale(0.98);
-}
-
-.status {
-    margin-top: 20px;
-    padding: 15px;
-    background: #0d2630;
-    border-radius: 12px;
-    color: #20e58a;
-}
-
-@media(max-width:700px) {
-    .dashboard {
-        grid-template-columns: 1fr;
-    }
-}
+.blue {background:#35a7ff;color:#07111f;}
+small {color:#9eb1c7;}
 </style>
 </head>
 
 <body>
 
-<div class="dashboard">
+<div class="grid">
 
-    <div class="card">
-        <div class="label">🔋 BATTERY STATUS</div>
-        <div id="battery" class="value blue">Checking...</div>
-        <div id="charging" class="green">Checking charging...</div>
-    </div>
+<div class="card">
+<h2>🔋 Battery Status</h2>
+<div class="value" id="battery">Checking...</div>
+</div>
 
-    <div class="card">
-        <div class="label">📍 LIVE LOCATION</div>
-        <div id="location" class="value green">Requesting GPS...</div>
-    </div>
+<div class="card">
+<h2>🕒 Live Time</h2>
+<div class="value" id="clock">--</div>
+</div>
 
-    <div class="card">
-        <div class="label">🛡️ SAFETY STATUS</div>
-        <div id="safety" class="value green">SAFE</div>
-    </div>
+<div class="card">
+<h2>🛡️ Safety Status</h2>
+<div class="value" style="color:#20e58a">
+● SAFE
+</div>
+</div>
 
-    <div class="card">
-        <div class="label">🕐 LIVE TIME</div>
-        <div id="time" class="value">--:--:--</div>
-    </div>
+<div class="card">
+<h2>📍 Live Coordinates</h2>
+<div class="value" id="coordinates">Not detected</div>
+</div>
 
 </div>
 
-<button class="sos" onclick="sendSOS()">
+<div class="card">
+<h2>📍 Current Location</h2>
+<div class="value" id="place">Tap the button to detect location</div>
+<br>
+<div id="address">Full address will appear here.</div>
+<br>
+<button class="green" onclick="getLocation()">
+Detect My Location
+</button>
+</div>
+
+<div class="card">
+<h2>🚔 Nearby Police Stations</h2>
+<div id="police">Detect your location first.</div>
+</div>
+
+<div class="card">
+<h2>🚨 Emergency SOS</h2>
+<p>In an emergency, use this button to call 112.</p>
+<button class="red" onclick="callSOS()">
 🚨 EMERGENCY SOS
 </button>
-
-<div id="message" class="status">
-System monitoring active...
 </div>
 
+<p><small>
+Location data: OpenStreetMap contributors.
+Location is requested only after you tap Detect My Location.
+</small></p>
+
 <script>
+setInterval(() => {
+ document.getElementById("clock").innerText =
+ new Date().toLocaleString();
+}, 1000);
 
-
-// ---------------- LIVE TIME ----------------
-
-function updateTime() {
-    let now = new Date();
-    document.getElementById("time").innerText =
-        now.toLocaleTimeString();
+if (navigator.getBattery) {
+ navigator.getBattery().then(b => {
+  function updateBattery() {
+   document.getElementById("battery").innerText =
+   Math.round(b.level * 100) + "%";
+  }
+  updateBattery();
+  b.addEventListener("levelchange", updateBattery);
+ }).catch(() => {
+  document.getElementById("battery").innerText =
+  "Not available";
+ });
+} else {
+ document.getElementById("battery").innerText =
+ "Not supported";
 }
 
-setInterval(updateTime, 1000);
-updateTime();
+function getLocation() {
+ const place = document.getElementById("place");
+ place.innerText = "Requesting GPS permission...";
+ document.getElementById("police").innerText = "Loading...";
 
+ if (!navigator.geolocation) {
+  place.innerText = "Geolocation not supported.";
+  return;
+ }
 
-// ---------------- BATTERY ----------------
+ navigator.geolocation.getCurrentPosition(
+  async function(position) {
+   const lat = position.coords.latitude;
+   const lon = position.coords.longitude;
 
-async function getBattery() {
+   document.getElementById("coordinates").innerText =
+    lat.toFixed(6) + ", " + lon.toFixed(6);
 
-    if (!navigator.getBattery) {
-        document.getElementById("battery").innerText =
-            "Not supported";
-        document.getElementById("charging").innerText =
-            "Battery API unavailable";
-        return;
-    }
+   place.innerText = "Finding location name...";
+   document.getElementById("address").innerText =
+    "Loading address...";
 
-    try {
+   try {
+    const url =
+     `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
 
-        const battery = await navigator.getBattery();
+    const response = await fetch(url);
+    const data = await response.json();
 
-        function updateBattery() {
+    const a = data.address || {};
+    const city = a.city || a.town || a.village ||
+                 a.suburb || a.county || "Unknown area";
+    const state = a.state || "";
+    place.innerText = city + ", " + state;
+    document.getElementById("address").innerText =
+     data.display_name || "Address not available.";
+   } catch(error) {
+    place.innerText = "Location name unavailable.";
+    document.getElementById("address").innerText =
+     "Please try again later.";
+   }
 
-            let level = Math.round(battery.level * 100);
+   findPolice(lat, lon);
+  },
 
-            document.getElementById("battery").innerText =
-                level + "%";
-
-            if (battery.charging) {
-                document.getElementById("charging").innerText =
-                    "⚡ Charging";
-            } else {
-                document.getElementById("charging").innerText =
-                    "🔋 Not charging";
-            }
-
-        }
-
-        updateBattery();
-
-        battery.addEventListener(
-            "levelchange",
-            updateBattery
-        );
-
-        battery.addEventListener(
-            "chargingchange",
-            updateBattery
-        );
-
-    } catch(e) {
-
-        document.getElementById("battery").innerText =
-            "Unavailable";
-
-    }
+  function(error) {
+   place.innerText =
+    "Location permission denied or GPS unavailable.";
+   document.getElementById("police").innerText =
+    "Location needed to find nearby police stations.";
+  },
+  {enableHighAccuracy:true, timeout:20000}
+ );
 }
 
-getBattery();
+async function findPolice(lat, lon) {
+ const output = document.getElementById("police");
+ output.innerText = "Searching nearby police stations...";
 
+ const query = `
+ [out:json][timeout:20];
+ (
+  node["amenity"="police"](around:5000,${lat},${lon});
+  way["amenity"="police"](around:5000,${lat},${lon});
+  relation["amenity"="police"](around:5000,${lat},${lon});
+ );
+ out center tags;
+ `;
 
-// ---------------- GPS LOCATION ----------------
+ try {
+  const response = await fetch(
+   "https://overpass-api.de/api/interpreter",
+   {
+    method:"POST",
+    body:"data=" + encodeURIComponent(query)
+   }
+  );
 
-function startLocation() {
+  const data = await response.json();
 
-    if (!navigator.geolocation) {
+  if (!data.elements || data.elements.length === 0) {
+   output.innerText =
+    "No mapped police stations found within 5 km.";
+   return;
+  }
 
-        document.getElementById("location").innerText =
-            "GPS unavailable";
+  output.innerHTML = "";
 
-        return;
-    }
+  data.elements.slice(0,10).forEach((station) => {
+   const name = station.tags.name || "Police Station";
+   const item = document.createElement("p");
+   item.textContent = "🚔 " + name;
+   output.appendChild(item);
+  });
 
-    navigator.geolocation.watchPosition(
-
-        function(position) {
-
-            let lat = position.coords.latitude;
-            let lon = position.coords.longitude;
-
-            document.getElementById("location").innerHTML =
-                lat.toFixed(5) +
-                "<br>" +
-                lon.toFixed(5);
-
-            document.getElementById("message").innerText =
-                "📍 Live GPS location updated";
-
-        },
-
-        function(error) {
-
-            document.getElementById("location").innerText =
-                "Permission required";
-
-            document.getElementById("message").innerText =
-                "Please allow location permission";
-
-        },
-
-        {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 10000
-        }
-    );
+ } catch(error) {
+  output.innerText =
+   "Could not load police station data. Try again later.";
+ }
 }
 
-startLocation();
-
-
-// ---------------- SOS ----------------
-
-function sendSOS() {
-
-    document.getElementById("safety").innerText =
-        "SOS ACTIVE";
-
-    document.getElementById("safety").style.color =
-        "#ff4d4d";
-
-    document.getElementById("message").innerText =
-        "🚨 Emergency mode activated";
-
-    // Replace with your emergency contact number
-    window.location.href = "tel:112";
+function callSOS() {
+ window.location.href = "tel:112";
 }
-
 </script>
-
 </body>
 </html>
-""", height=650)
+"""
 
-st.markdown("---")
-
-st.caption(
-    "SafeHer prototype • GPS and battery information depends on browser/device permissions and support."
-)
-st.set_page_config(
-    page_title="SafeHer",
-    page_icon="🛡️",
-    layout="wide"
-)
-# LOGIN SYSTEM
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    st.title("🛡️ SafeHer Login")
-    st.write("Welcome to Women's Safety Dashboard")
-
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if username.strip() and password.strip():
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.rerun()
-        else:
-            st.error("Please enter username and password")
-
-    st.stop()
-
-st.success("Welcome, " + st.session_state.username)
+components.html(html_code, height=1050, scrolling=True)
